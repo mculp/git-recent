@@ -1,0 +1,64 @@
+#!/bin/sh
+set -eu
+
+# defaults
+LIMIT=30
+QUERY=""
+
+# args
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      cat <<'EOF'
+usage: git recent [limit] [query]
+
+Interactively switch to a recently updated branch.
+
+Arguments:
+  limit   Number of branches to show (default: 30)
+  query   Initial fzf search query
+
+Requires:
+  fzf
+
+Examples:
+  git recent
+  git recent 10
+  git recent 20 feature
+EOF
+      exit 0
+      ;;
+    *)
+      if [ -z "$QUERY" ] && printf '%s' "$arg" | grep -Eq '^[0-9]+$'; then
+        LIMIT="$arg"
+      else
+        QUERY="$arg"
+      fi
+      ;;
+  esac
+done
+
+# ensure we're in a repo
+git rev-parse --git-dir >/dev/null 2>&1 || {
+  echo "Not a git repository" >&2
+  exit 1
+}
+
+branch=$(
+  git for-each-ref \
+    --count="$LIMIT" \
+    --sort=-committerdate \
+    --format='%(committerdate:relative)%09%(refname:short)' \
+    refs/heads |
+  fzf \
+    --query="$QUERY" \
+    --delimiter='\t' \
+    --with-nth=1,2 \
+    --preview='git log --oneline --decorate -5 {2}' \
+    --preview-window=right:60% |
+  cut -f2
+)
+
+[ -n "$branch" ] || exit 0
+
+exec git switch "$branch"
