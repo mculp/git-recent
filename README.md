@@ -12,7 +12,7 @@ Interactively switch to recently updated Git branches.
 
 ### Homebrew
 ```sh
-brew install mculp/tap/git-recent
+brew install mculp/homebrew-tap/git-recent
 ```
 
 ### Manual
